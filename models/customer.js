@@ -1,7 +1,7 @@
 /** Customer for Lunchly */
 
-const db = require("../db");
-const Reservation = require("./reservation");
+const db = require('../db');
+const Reservation = require('./reservation');
 
 /** Customer of the restaurant. */
 
@@ -26,7 +26,7 @@ class Customer {
        FROM customers
        ORDER BY last_name, first_name`
     );
-    return results.rows.map(c => new Customer(c));
+    return results.rows.map((c) => new Customer(c));
   }
 
   /** get a customer by ID. */
@@ -77,6 +77,47 @@ class Customer {
         [this.firstName, this.lastName, this.phone, this.notes, this.id]
       );
     }
+  }
+
+  fullName() {
+    return this.firstName + ' ' + this.lastName;
+  }
+
+  static async search(search) {
+    //case sensitive
+    const results = await db.query(
+      `SELECT id, 
+      first_name AS "firstName",  
+      last_name AS "lastName", 
+      phone, 
+      notes
+      FROM customers
+      WHERE first_name = $1
+      ORDER BY last_name, first_name`,
+      [search]
+    );
+
+    return results.rows.map((c) => new Customer(c));
+  }
+
+  static async topTen() {
+    const results = await db.query(
+      `SELECT c.id, c.first_name, c.last_name, c.phone, c.notes, COUNT(customer_id) 
+      FROM reservations as r 
+      INNER JOIN customers as c ON c.id = r.customer_id GROUP BY c.id, r.customer_id 
+      ORDER BY COUNT(customer_id) DESC LIMIT 10;`
+    );
+
+    return results.rows.map((c) => {
+      console.log(c.first_name);
+      return new Customer({
+        id: c.id,
+        firstName: c.first_name,
+        lastName: c.last_name,
+        phone: c.phone,
+        notes: c.notes,
+      });
+    });
   }
 }
 
